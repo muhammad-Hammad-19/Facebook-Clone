@@ -47,7 +47,7 @@ const FacebookModalUI = ({ setOpen, open }) => {
       massage,
       File,
     };
-
+    
     const postRef = doc(db, "SignupUsers", user.uid);
     const postSnap = await getDoc(postRef);
 
