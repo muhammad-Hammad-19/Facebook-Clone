@@ -14,15 +14,13 @@ import {
   Box,
 } from "@mui/material";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { styled } from "@mui/material/styles";
 
 import { useAddFriendFuc } from "../context/addFriend";
 import { db } from "../firebase/firebse";
 import { getAuth } from "firebase/auth";
-import { getDoc, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { getDoc, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 import Loader from "./Loader";
 import { filterUserForUserName } from "../../../utils";
@@ -40,196 +38,173 @@ export default function FacebookPost() {
   const auth = getAuth();
   const user = auth.currentUser;
 
-  // 🔹 COMMENTS STATE (ONE INPUT PER POST)
   const [comments, setComments] = React.useState({});
-
+  const [showAll, setShowAll] = React.useState(false);
   const userName = filterUserForUserName(state, user?.uid);
 
-  // --------------------------- LIKE ----------------------------
-  const handleLikeToggle = async (name, userId, postId, check, userName) => {
-    const postRef = doc(db, "SignupUsers", postId);
-    const postSnap = await getDoc(postRef);
-    if (!postSnap.exists()) return;
-
-    const likeObj = {
-      userId,
-      user_Name: name,
-      read: false,
-      checkMassage: check,
-      userNameLike: userName,
-    };
-
-    await updateDoc(postRef, {
-      likes: arrayUnion(likeObj),
-    });
-  };
-
-  // --------------------------- COMMENT SEND ----------------------------
-  const handleComment = async (D, post) => {
-    const text = comments[post.massage];
-    if (!text?.trim()) return;
-
-    const postRef = doc(db, "SignupUsers", D.UserId);
-
-    const commentObj = {
-      userId: user?.uid ?? "",
-      userName: D?.userDetails?.[0]?.name ?? "User",
-      comment: text,
-      checkMassage: post.massage,
-      read: false,
-      userNameComment: userName,
-    };
-
-    await updateDoc(postRef, {
-      comments: arrayUnion(commentObj),
-    });
-
-    // clear only this post input
-    setComments((prev) => ({
-      ...prev,
-      [post.massage]: "",
-    }));
-  };
+  if (!state || state.length === 0) return <Loader />;
 
   const hasUserLiked = (likesArray, postmassage, currUserId) =>
-    likesArray?.some(
-      (c) => c?.checkMassage === postmassage && c?.userId === currUserId
-    );
+    likesArray?.some((c) => c?.checkMassage === postmassage && c?.userId === currUserId);
 
   const hasUserLikedLength = (likesArray, likeMassage) =>
     likesArray?.filter((f) => f.checkMassage === likeMassage);
 
-  // --------------------------- LOADING ----------------------------
-  if (!state || state.length === 0) {
-    return <Loader />;
-  }
-
-  // --------------------------- RENDER ----------------------------
   return (
     <>
       {state.map((D) =>
-        D?.Post?.flat()?.map((post, index) => (
-          <Card
-            key={D.UserId + index}
-            sx={{
-              maxWidth: 600,
-              margin: "20px auto",
-              borderRadius: 3,
-              boxShadow: 2,
-              backgroundColor: "#fff",
-            }}
-          >
-            {/* HEADER */}
-            <CardHeader
-              avatar={<Avatar />}
-              action={
-                <IconButton>
-                  <MoreVertIcon />
-                </IconButton>
-              }
-              title={
-                <Typography sx={{ fontWeight: "bold" }}>
-                  {D?.userDetails?.[0]?.name || "User"}
-                </Typography>
-              }
-              subheader="October 30 at 7:45 PM"
-            />
+        D?.Post?.flat()?.map((post, index) => {
+          const filteredComments = D?.comments?.filter(
+            (c) => c?.checkMassage === post?.massage
+          );
 
-            {/* MESSAGE */}
-            <CardContent sx={{ pt: 0 }}>
-              <Typography variant="body1">{post?.massage}</Typography>
-            </CardContent>
+          return (
+            <Card
+              key={D.UserId + index}
+              sx={{
+                maxWidth: { xs: "95%", sm: 600 },
+                margin: "20px auto",
+                borderRadius: 3,
+                boxShadow: 3,
+                bgcolor: "#fff",
+                transition: "0.3s",
+                ":hover": { boxShadow: 6 },
+              }}
+            >
+              {/* HEADER */}
+              <CardHeader
+                avatar={<Avatar />}
+                action={
+                  <IconButton>
+                    <MoreVertIcon />
+                  </IconButton>
+                }
+                title={<Typography sx={{ fontWeight: "bold" }}>{D?.userDetails?.[0]?.name || "User"}</Typography>}
+                subheader={<Typography variant="caption">October 30 at 7:45 PM</Typography>}
+              />
 
-            {/* IMAGE */}
-            {post?.File && (
-              <Box sx={{ px: 2 }}>
-                <PostImage src={post.File} alt={post.massage} />
-              </Box>
-            )}
-
-            {/* LIKE / COMMENT / SHARE */}
-            <CardActions sx={{ justifyContent: "space-between", px: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <IconButton
+              {/* MESSAGE */}
+              <CardContent sx={{ pt: 0 }}>
+                <Typography
+                  variant="body1"
                   sx={{
-                    color: hasUserLiked(D?.likes, post?.massage, user?.uid)
-                      ? "blue"
-                      : "gray",
+                    wordBreak: "break-word",
+                    whiteSpace: "pre-wrap",
                   }}
-                  onClick={() =>
-                    handleLikeToggle(
-                      D?.userDetails?.[0]?.name,
-                      user?.uid,
-                      D?.UserId,
-                      post?.massage,
-                      userName
-                    )
-                  }
                 >
-                  <ThumbUpIcon />
-                </IconButton>
-
-                <Typography variant="body2">
-                  Like {hasUserLikedLength(D.likes, post.massage)?.length || 0}
+                  {post?.massage}
                 </Typography>
-              </Box>
-            </CardActions>
+              </CardContent>
 
-            <Divider />
-
-            {/* COMMENTS LIST */}
-            <Box sx={{ px: 2, py: 1 }}>
-              {D?.comments?.map((c, i) =>
-                c?.checkMassage === post?.massage ? (
-                  <Box key={i} sx={{ display: "flex", mb: 1 }}>
-                    <Avatar sx={{ width: 32, height: 32, mr: 1 }} />
-                    <Box
-                      sx={{ backgroundColor: "#f0f2f5", borderRadius: 2, p: 1 }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                        {c?.userNameComment}
-                      </Typography>
-                      <Typography variant="body2">{c?.comment}</Typography>
-                    </Box>
-                  </Box>
-                ) : null
+              {/* IMAGE */}
+              {post?.File && (
+                <Box sx={{ px: 2 }}>
+                  <PostImage src={post.File} alt={post.massage} />
+                </Box>
               )}
 
-              {/* COMMENT INPUT */}
-              <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
-                <Avatar sx={{ width: 32, height: 32, mr: 1 }} />
+              {/* LIKE / COMMENT */}
+              <CardActions sx={{ justifyContent: "space-between", px: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <IconButton
+                    sx={{
+                      color: hasUserLiked(D?.likes, post?.massage, user?.uid) ? "blue" : "gray",
+                    }}
+                    onClick={() =>
+                      handleLikeToggle(
+                        D?.userDetails?.[0]?.name,
+                        user?.uid,
+                        D?.UserId,
+                        post?.massage,
+                        userName
+                      )
+                    }
+                  >
+                    <ThumbUpIcon />
+                  </IconButton>
+                  <Typography variant="body2" sx={{ ml: 0.5 }}>
+                    {hasUserLikedLength(D.likes, post.massage)?.length || 0} Likes
+                  </Typography>
+                </Box>
+              </CardActions>
 
-                <TextField
-                  size="small"
-                  fullWidth
-                  placeholder="Write a comment..."
-                  value={comments[post.massage] || ""}
-                  onChange={(e) =>
-                    setComments((prev) => ({
-                      ...prev,
-                      [post.massage]: e.target.value,
-                    }))
-                  }
-                  sx={{
-                    backgroundColor: "#f0f2f5",
-                    borderRadius: "20px",
-                  }}
-                />
+              <Divider />
 
-                <Button
-                  onClick={() => handleComment(D, post)}
-                  variant="contained"
-                  size="small"
-                  sx={{ ml: 1, textTransform: "none" }}
-                >
-                  Post
-                </Button>
+              {/* COMMENTS */}
+              <Box sx={{ px: 2, py: 1 }}>
+                {filteredComments?.map((c, i) =>
+                  showAll || i < 3 ? (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: "flex",
+                        mb: 1,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <Avatar sx={{ width: 32, height: 32, mr: 1 }} />
+                      <Box
+                        sx={{
+                          bgcolor: "#f0f2f5",
+                          borderRadius: 2,
+                          p: 1,
+                          width: "100%",
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                          {c?.userNameComment}
+                        </Typography>
+                        <Typography variant="body2">{c?.comment}</Typography>
+                      </Box>
+                    </Box>
+                  ) : null
+                )}
+
+                {!showAll && filteredComments?.length > 3 && (
+                  <Button
+                    variant="text"
+                    onClick={() => setShowAll(true)}
+                    sx={{ mt: 1, color: "blue", textTransform: "none" }}
+                  >
+                    Read more...
+                  </Button>
+                )}
+
+                {/* COMMENT INPUT */}
+                <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                  <Avatar sx={{ width: 32, height: 32, mr: 1 }} />
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Write a comment..."
+                    value={comments[post.massage] || ""}
+                    onChange={(e) =>
+                      setComments((prev) => ({
+                        ...prev,
+                        [post.massage]: e.target.value,
+                      }))
+                    }
+                    sx={{
+                      bgcolor: "#f0f2f5",
+                      borderRadius: "20px",
+                      px: 2,
+                    }}
+                  />
+                  <Button
+                    onClick={() => handleComment(D, post)}
+                    variant="contained"
+                    size="small"
+                    sx={{ ml: 1, textTransform: "none" }}
+                  >
+                    Post
+                  </Button>
+                </Box>
               </Box>
-            </Box>
 
-            <Divider />
-          </Card>
-        ))
+              <Divider />
+            </Card>
+          );
+        })
       )}
     </>
   );

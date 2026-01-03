@@ -8,7 +8,7 @@ import { db } from "@/app/firebase/firebse";
 import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
 export default function AddFriendPageUI() {
   const { state: allUsersState } = useAddFriendFuc();
-
+  
   const [currentUser, setCurrentUser] = useState(null);
 
   const [currentUsersName, setcurrentUsersName] = useState(null);

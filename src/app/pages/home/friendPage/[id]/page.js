@@ -1,43 +1,39 @@
 "use client";
 
-import {
-  filter_for_UserProfile_page,
-  nameUpperCase,
-} from "../../../../../utils";
-import { useCurrUserFuc } from "@/app/context/currentUserContext";
 import { useAddFriendFuc } from "@/app/context/addFriend";
-import Link from "next/link";
+import { useParams } from "next/navigation";
 
-export default function UserProfile() {
-  const { state: user } = useCurrUserFuc();
+export default function FriendPage() {
+  const { id } = useParams();
   const { state } = useAddFriendFuc();
 
-  const admin_Array = filter_for_UserProfile_page(state, user) || [];
+  const friend = state.find((data) => data.id === id);
+
+  if (!friend) {
+    return (
+      <div className="flex justify-center items-center h-screen text-blue-600">
+        Loading...
+      </div>
+    );
+  }
+
   const {
     Post = [],
     likes = [],
     comments = [],
     Friends = [],
     userDetails = [],
-  } = admin_Array || {};
+  } = friend;
 
-  if (admin_Array.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-screen text-blue-600">
-        Loading....
-      </div>
-    );
-  }
+  const friendName = userDetails[0]?.name || "User";
 
-  const adminName = nameUpperCase(userDetails[0]?.name || "User");
-
-  // Posts photos for Photos section
+  // 📸 Images from posts (Facebook style)
   const photos = Post.filter((p) => p.File);
 
   return (
     <div className="bg-gray-100 min-h-screen">
-      {/* ================= PROFILE HEADER ================= */}
-      <div className="relative w-full bg-white shadow">
+      {/* ================= COVER ================= */}
+      <div className="relative bg-white shadow">
         <img
           src="https://images.unsplash.com/photo-1495562569060-2eec283d3391"
           className="w-full h-56 sm:h-72 object-cover"
@@ -47,20 +43,20 @@ export default function UserProfile() {
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 sm:-mt-20">
             <img
               src="https://i.pravatar.cc/300"
-              className="w-36 h-36 sm:w-40 sm:h-40 rounded-full border-4 border-white object-cover"
+              className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-white object-cover"
             />
 
             <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-bold">{adminName}</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold">{friendName}</h1>
               <p className="text-gray-600">{Friends.length} Friends</p>
             </div>
 
             <div className="flex gap-2 pb-4 sm:pb-6">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
-                Add to Story
-              </button>
               <button className="bg-gray-200 px-4 py-2 rounded-lg font-medium">
-                Edit Profile
+                ✓ Friends
+              </button>
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
+                Message
               </button>
             </div>
           </div>
@@ -71,16 +67,16 @@ export default function UserProfile() {
       <div className="max-w-5xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
         {/* ========== LEFT ========== */}
         <div className="space-y-6">
-          {/* Intro */}
-          <div className="bg-white shadow rounded-lg p-4">
+          {/* INTRO */}
+          <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold text-lg mb-2">Intro</h2>
             <p className="text-gray-600">💻 Software Developer</p>
-            <p className="text-gray-600 mt-1">📍 Lives in California</p>
-            <p className="text-gray-600 mt-1">🏠 From New York</p>
+            <p className="text-gray-600">📍 Lives in California</p>
+            <p className="text-gray-600">🏠 From New York</p>
           </div>
 
-          {/* Photos */}
-          <div className="bg-white shadow rounded-lg p-4">
+          {/* PHOTOS */}
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-semibold text-lg">Photos</h2>
               {photos.length > 0 && (
@@ -111,25 +107,18 @@ export default function UserProfile() {
             )}
           </div>
 
-          {/* Friends */}
-          <div className="bg-white shadow rounded-lg p-4">
+          {/* FRIENDS */}
+          <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold text-lg mb-3">
               Friends · {Friends.length}
             </h2>
 
             <div className="grid grid-cols-3 gap-3">
-              {Friends.slice(0, 6).map((friend, i) => (
-                <Link
-                  href={`friendPage/${friend?.id}`}
-                  key={i}
-                  className="text-center"
-                >
-                  <img
-                    src="https://i.pravatar.cc/150"
-                    className="rounded-lg w-full"
-                  />
-                  <p className="text-sm font-medium mt-1">{friend.name}</p>
-                </Link>
+              {Friends.slice(0, 6).map((f, i) => (
+                <div key={i} className="text-center">
+                  <img src="https://i.pravatar.cc/150" className="rounded-lg" />
+                  <p className="text-sm font-medium mt-1">{f.name}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -137,21 +126,6 @@ export default function UserProfile() {
 
         {/* ========== RIGHT (POSTS) ========== */}
         <div className="md:col-span-2 space-y-6">
-          {/* Create Post UI */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center gap-3">
-              <img
-                src="https://i.pravatar.cc/50"
-                className="w-10 h-10 rounded-full"
-              />
-              <input
-                placeholder="What's on your mind?"
-                className="flex-1 bg-gray-100 px-4 py-2 rounded-full outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Posts */}
           {Post.length > 0 ? (
             Post.map((post, index) => {
               const postLikes = likes.filter(
@@ -169,56 +143,20 @@ export default function UserProfile() {
                       className="w-10 h-10 rounded-full"
                     />
                     <div>
-                      <h3 className="font-semibold">
-                        {likes[0]?.user_Name || adminName}
-                      </h3>
+                      <h3 className="font-semibold">{friendName}</h3>
                       <p className="text-sm text-gray-500">Just now</p>
                     </div>
                   </div>
 
-                  <p className="mb-3 text-gray-800">{post.massage}</p>
+                  <p className="mb-3">{post.massage}</p>
 
                   {post.File && (
-                    <img
-                      src={post.File}
-                      className="w-full rounded-lg mb-3 object-cover"
-                    />
+                    <img src={post.File} className="w-full rounded-lg mb-3" />
                   )}
 
-                  <div className="flex justify-between text-gray-600 text-sm pb-2 border-b">
+                  <div className="flex justify-between text-sm text-gray-600">
                     <span>👍 {postLikes.length}</span>
                     <span>{postComments.length} Comments</span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-between mt-2 text-gray-600">
-                    <button className="hover:bg-gray-100 px-4 py-2 rounded-lg">
-                      👍 Like
-                    </button>
-                    <button className="hover:bg-gray-100 px-4 py-2 rounded-lg">
-                      💬 Comment
-                    </button>
-                    <button className="hover:bg-gray-100 px-4 py-2 rounded-lg">
-                      🔄 Share
-                    </button>
-                  </div>
-
-                  {/* Comments */}
-                  <div className="mt-4 space-y-4">
-                    {postComments.map((c, i) => (
-                      <div key={i} className="flex gap-3 items-start">
-                        <img
-                          src="https://i.pravatar.cc/150?img=32"
-                          className="w-8 h-8 rounded-full"
-                        />
-                        <div className="bg-gray-100 rounded-2xl px-4 py-2 max-w-lg">
-                          <p className="text-sm font-semibold">
-                            {c.userNameComment}
-                          </p>
-                          <p className="text-sm text-gray-700">{c.comment}</p>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               );

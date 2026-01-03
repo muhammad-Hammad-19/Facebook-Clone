@@ -14,7 +14,7 @@ export default function AIChatPage() {
 
   async function main() {
     if (!content.trim()) return; // ignore empty messages
-
+    setContent(""); // clear input
     // Add user message
     setMessages((prev) => [...prev, { sender: "user", text: content }]);
 
@@ -23,9 +23,8 @@ export default function AIChatPage() {
         model: "gemini-2.5-flash",
         contents: content,
       });
-
-      // Add AI response
       setMessages((prev) => [...prev, { sender: "ai", text: response.text }]);
+
     } catch (error) {
       console.error("AI Error:", error);
       setMessages((prev) => [
@@ -33,8 +32,6 @@ export default function AIChatPage() {
         { sender: "ai", text: "Oops! Something went wrong." },
       ]);
     }
-
-    setContent(""); // clear input
   }
 
   return (

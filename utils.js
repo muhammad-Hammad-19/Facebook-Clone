@@ -43,7 +43,6 @@ export const filterUserForUserName = (data, userId) => {
   const user = data?.find((item) => item?.UserId === userId);
   return user?.userDetails[0]?.name;
 };
-//--------------------------- Filter_for_UserProfile_page===============
 
 export const filter_for_UserProfile_page = (data, userId) => {
   const userArray = data?.find((item) => item?.UserId === userId);
@@ -56,9 +55,4 @@ export const filter_for_UserName = (data, userId) => {
 };
 export const nameUpperCase = (name) => {
   return name.charAt(0).toUpperCase() + name.slice(1);
-};
-
-// export const friendNameFuc = (data, userFriend) => {
-//   const userArray = data?.find((item) => item?.UserId !== userFriend);
-//   return userArray;
-// };
+}; 
